@@ -75,6 +75,13 @@ float dataTaskPriorityWithImageManagerPriority(PINRemoteImageManagerPriority pri
 typedef void (^PINRemoteImageManagerImageCompletion)(PINRemoteImageManagerResult *result);
 
 /**
+ Called repeatedly during an image download to indicate the latest percentage that has been downloaded of an image.
+ 
+ @param percent The percentage downloaded.
+ */
+typedef void (^PINRemoteImageManagerImagePercentageProgressBlock)(float percent);
+
+/**
  Processor block to post-process a downloaded image. Passed in a PINRemoteImageManagerResult and a pointer to an NSUInteger which can be updated to indicate the cost of processing the image.
  
  @param result PINRemoteImageManagerResult which contains the downloaded image.
@@ -277,6 +284,23 @@ typedef void(^PINRemoteImageManagerAuthenticationChallenge)(NSURLSessionTask *ta
  */
 - (NSUUID *)downloadImageWithURL:(NSURL *)url
                          options:(PINRemoteImageManagerDownloadOptions)options
+                        progress:(PINRemoteImageManagerImageCompletion)progress
+                      completion:(PINRemoteImageManagerImageCompletion)completion;
+
+/**
+ Download or retrieve from cache the image found at the url. All completions are called on an arbitrary callback queue unless called on the main thread and the result is in the memory cache (this is an optimization to allow synchronous results for the UI when an object is cached in memory).
+ 
+ @param url NSURL where the image to download resides.
+ @param options PINRemoteImageManagerDownloadOptions options with which to fetch the image.
+ @param percentProgress PINRemoteImageManagerImagePercentageProgressBlock block which will be called repeatedly to indicate the latest percentage of completion on the image download.
+ @param progress PINRemoteImageManagerImageCompletion block which will be called to update progress of the image download.
+ @param completion PINRemoteImageManagerImageCompletion block to call when image has been fetched from the cache or downloaded.
+ 
+ @return An NSUUID which uniquely identifies this request. To be used for canceling requests and verifying that the callback is for the request you expect (see categories for example).
+ */
+- (NSUUID *)downloadImageWithURL:(NSURL *)url
+                         options:(PINRemoteImageManagerDownloadOptions)options
+                 percentProgress:(PINRemoteImageManagerImagePercentageProgressBlock)percentProgress
                         progress:(PINRemoteImageManagerImageCompletion)progress
                       completion:(PINRemoteImageManagerImageCompletion)completion;
 

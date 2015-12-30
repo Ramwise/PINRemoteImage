@@ -185,6 +185,8 @@ static dispatch_once_t sharedDispatchToken;
         self.tasks = [[NSMutableDictionary alloc] init];
         self.canceledTasks = [[NSMutableSet alloc] init];
         self.taskQOS = [[NSMutableArray alloc] initWithCapacity:5];
+        
+        _percentProgressBlocks = [NSMutableDictionary dictionary];
     }
     return self;
 }
@@ -368,6 +370,21 @@ static dispatch_once_t sharedDispatchToken;
                              progress:nil
                            completion:completion
                             inputUUID:nil];
+}
+
+- (NSUUID *)downloadImageWithURL:(NSURL *)url
+                         options:(PINRemoteImageManagerDownloadOptions)options
+                 percentProgress:(PINRemoteImageManagerImagePercentageProgressBlock)percentProgress
+                        progress:(PINRemoteImageManagerImageCompletion)progress
+                      completion:(PINRemoteImageManagerImageCompletion)completion {
+    NSString *key = [self cacheKeyForURL:url processorKey:nil];
+    [_percentProgressBlocks setObject:percentProgress forKey:key];
+    __weak RemoteImageManager *weakSelf = self;
+    NSUUID *uuid = [self downloadImageWithURL:url options:options progress:progress completion:^(PINRemoteImageManagerResult *result) {
+        completion(result);
+        [weakSelf.percentProgressBlocks removeObjectForKey:key];
+    }];
+    return uuid;
 }
 
 - (NSUUID *)downloadImageWithURL:(NSURL *)url
@@ -1078,6 +1095,22 @@ static dispatch_once_t sharedDispatchToken;
             }
         }];
     }
+    
+    if (dataTask.countOfBytesExpectedToReceive <= 0) {
+        return ;
+    }
+    NSString *key = [self cacheKeyForURL:[[dataTask originalRequest] URL] processorKey:nil];
+    PINRemoteImageManagerImagePercentageProgressBlock percentProgressBlock = [_percentProgressBlocks objectForKey:key];
+    if (!percentProgressBlock) {
+        return ;
+    }
+    float percent = dataTask.countOfBytesReceived/(float)dataTask.countOfBytesExpectedToReceive;
+    dispatch_async(dispatch_get_main_queue(), ^() {
+        if (!percentProgressBlock) {
+            return ;
+        }
+        percentProgressBlock(percent);
+    });
 }
 
 - (void)didCompleteTask:(NSURLSessionTask *)task withError:(NSError *)error
