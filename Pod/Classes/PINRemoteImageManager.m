@@ -107,6 +107,7 @@ typedef void (^PINRemoteImageManagerDataCompletion)(NSData *data, NSError *error
 @property (nonatomic, strong) NSMutableDictionary *tasks;
 @property (nonatomic, strong) NSMutableSet *canceledTasks;
 @property (nonatomic, strong) NSArray *progressThresholds;
+@property (nonatomic, strong) NSMutableDictionary *percentProgressBlocks;
 @property (nonatomic, assign) NSTimeInterval estimatedRemainingTimeThreshold;
 @property (nonatomic, strong) dispatch_queue_t callbackQueue;
 @property (nonatomic, strong) NSOperationQueue *concurrentOperationQueue;
@@ -120,6 +121,7 @@ typedef void (^PINRemoteImageManagerDataCompletion)(NSData *data, NSError *error
 @property (nonatomic, assign) float currentBPS;
 @property (nonatomic, assign) BOOL overrideBPS;
 @property (nonatomic, assign) NSUInteger totalDownloads;
+
 #endif
 
 @end
@@ -379,7 +381,7 @@ static dispatch_once_t sharedDispatchToken;
                       completion:(PINRemoteImageManagerImageCompletion)completion {
     NSString *key = [self cacheKeyForURL:url processorKey:nil];
     [_percentProgressBlocks setObject:percentProgress forKey:key];
-    __weak RemoteImageManager *weakSelf = self;
+    __weak PINRemoteImageManager *weakSelf = self;
     NSUUID *uuid = [self downloadImageWithURL:url options:options progress:progress completion:^(PINRemoteImageManagerResult *result) {
         completion(result);
         [weakSelf.percentProgressBlocks removeObjectForKey:key];
